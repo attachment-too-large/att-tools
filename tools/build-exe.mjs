@@ -22,6 +22,16 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ALL = ["split", "join", "info", "limits", "ndr", "share"];
 const isWin = process.platform === "win32";
 const EXT = isWin ? ".exe" : "";
+// macOS is deliberately unsupported: a SEA binary there needs the signature stripped
+// before injection, the mach-o segment named, and Node's entitlements preserved when
+// re-signing — and even then the produced executable has to be validated on a real Mac.
+// Rather than ship an artefact nobody can verify, the build refuses to run here.
+if (process.platform === "darwin") {
+  console.error("macOS builds are not supported. Build on Windows or Linux, or run the");
+  console.error("sources directly: node src/<tool>.mjs --help");
+  process.exit(2);
+}
+
 const SENTINEL = "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2";
 const NODE_BIN = process.execPath;
 const BUILD = join(ROOT, "build");
@@ -100,21 +110,9 @@ for (const name of which) {
 
   rmSync(out, { force: true });
   copyFileSync(NODE_BIN, out);
-  // macOS: the copied runtime is code-signed, and injecting a blob invalidates that
-  // signature — Node's SEA docs require stripping it before postject runs.
-  if (process.platform === "darwin") {
-    const cs = run("codesign", ["--remove-signature", out]);
-    if (cs.status !== 0) console.log("    (codesign --remove-signature failed; continuing anyway)");
-  }
-  const inject = run(NODE_BIN, [postject, out, "NODE_SEA_BLOB", blob, "--sentinel-fuse", SENTINEL, ...(process.platform === "darwin" ? ["--macho-segment-name", "NODE_SEA"] : [])]);
+  const inject = run(NODE_BIN, [postject, out, "NODE_SEA_BLOB", blob, "--sentinel-fuse", SENTINEL]);
   if (inject.status !== 0) { console.log(`    ${c(31, "inject failed")}: ${(inject.stderr || inject.stdout || "").slice(0, 200)}`); failed++; results.push({ name, ok: false }); continue; }
 
-// macOS, step 3 of the SEA recipe: after injection the binary is unsigned and the
-  // kernel refuses to run it, so it has to be signed ad-hoc.
-  if (process.platform === "darwin") {
-    const sg = run("codesign", ["--sign", "-", "--force", "--preserve-metadata=entitlements,requirements,flags,runtime", out]);
-    if (sg.status !== 0) { console.log("    " + "out" + " could not be re-signed; aborting this build"); failed++; results.push({ name, ok: false }); continue; }
-  }
   console.log(`    ${c(32, "built")}  ${(statSync(out).size / 1048576).toFixed(1)} MB`);
   results.push({ name, ok: true, sizeMB: (statSync(out).size / 1048576).toFixed(1) });
 }
