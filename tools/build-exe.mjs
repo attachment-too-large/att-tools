@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /* ==========================================================================
    Build the six att-tools executables.
 
@@ -100,6 +100,12 @@ for (const name of which) {
 
   rmSync(out, { force: true });
   copyFileSync(NODE_BIN, out);
+  // macOS: the copied runtime is code-signed, and injecting a blob invalidates that
+  // signature — Node's SEA docs require stripping it before postject runs.
+  if (process.platform === "darwin") {
+    const cs = run("codesign", ["--remove-signature", out]);
+    if (cs.status !== 0) console.log("    (codesign --remove-signature failed; continuing anyway)");
+  }
   const inject = run(NODE_BIN, [postject, out, "NODE_SEA_BLOB", blob, "--sentinel-fuse", SENTINEL]);
   if (inject.status !== 0) { console.log(`    ${c(31, "inject failed")}: ${(inject.stderr || inject.stdout || "").slice(0, 200)}`); failed++; results.push({ name, ok: false }); continue; }
 
