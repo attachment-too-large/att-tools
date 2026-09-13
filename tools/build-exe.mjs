@@ -106,14 +106,14 @@ for (const name of which) {
     const cs = run("codesign", ["--remove-signature", out]);
     if (cs.status !== 0) console.log("    (codesign --remove-signature failed; continuing anyway)");
   }
-  const inject = run(NODE_BIN, [postject, out, "NODE_SEA_BLOB", blob, "--sentinel-fuse", SENTINEL]);
+  const inject = run(NODE_BIN, [postject, out, "NODE_SEA_BLOB", blob, "--sentinel-fuse", SENTINEL, ...(process.platform === "darwin" ? ["--macho-segment-name", "NODE_SEA"] : [])]);
   if (inject.status !== 0) { console.log(`    ${c(31, "inject failed")}: ${(inject.stderr || inject.stdout || "").slice(0, 200)}`); failed++; results.push({ name, ok: false }); continue; }
 
 // macOS, step 3 of the SEA recipe: after injection the binary is unsigned and the
   // kernel refuses to run it, so it has to be signed ad-hoc.
   if (process.platform === "darwin") {
-    const sg = run("codesign", ["--sign", "-", "--force", out]);
-    if (sg.status !== 0) console.log("    (ad-hoc codesign failed; the binary may not run)");
+    const sg = run("codesign", ["--sign", "-", "--force", "--preserve-metadata=entitlements,requirements,flags,runtime", out]);
+    if (sg.status !== 0) { console.log("    " + "out" + " could not be re-signed; aborting this build"); failed++; results.push({ name, ok: false }); continue; }
   }
   console.log(`    ${c(32, "built")}  ${(statSync(out).size / 1048576).toFixed(1)} MB`);
   results.push({ name, ok: true, sizeMB: (statSync(out).size / 1048576).toFixed(1) });
