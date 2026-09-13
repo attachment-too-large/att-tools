@@ -1,0 +1,19 @@
+{
+  "name": "att-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Six small tools for the attachment-too-large problem: split, join, info, limits, ndr, share",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "scripts": {
+    "test": "node tools/test.mjs",
+    "test:exe": "node tools/test.mjs --exe",
+    "build": "node tools/build-exe.mjs"
+  },
+  "devDependencies": {
+    "postject": "^1.0.0-alpha.6"
+  }
+}

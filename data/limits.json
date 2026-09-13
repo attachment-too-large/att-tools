@@ -1,0 +1,64 @@
+{
+  "updatedAt": "2025-11-14",
+  "note": "Attachment limits per mail service. limitMB is binary (1024-based), matching what most clients show. Product defaults change; confirm against official documentation and your own measurements.",
+  "services": [
+    {
+      "id": "outlook.com",
+      "name": "Outlook.com",
+      "limitMB": 20,
+      "kind": "attachment",
+      "note": "Above this it suggests sending a share link instead — the phrase this site is named after.",
+      "verifiedAt": "2025-11-14"
+    },
+    {
+      "id": "exchange-online",
+      "name": "Exchange Online (Microsoft 365 default)",
+      "limitMB": 35,
+      "kind": "whole message",
+      "note": "The organisation default; administrators can change it, and inbound may differ from outbound.",
+      "verifiedAt": "2025-11-14"
+    },
+    {
+      "id": "exchange-onprem",
+      "name": "On-premises Exchange (factory default)",
+      "limitMB": 10,
+      "kind": "whole message",
+      "note": "A default from the mid-2000s still alive on plenty of internal servers, because nobody dares touch it.",
+      "verifiedAt": "2025-10-02"
+    },
+    {
+      "id": "outlook-desktop",
+      "name": "Outlook desktop client",
+      "limitMB": null,
+      "kind": "no limit",
+      "note": "The client itself sets no limit — what you hit is the server or a gateway.",
+      "verifiedAt": "2025-11-14"
+    },
+    {
+      "id": "gateway",
+      "name": "Corporate SMTP gateway (typical range)",
+      "limitMB": 25,
+      "minMB": 10,
+      "maxMB": 35,
+      "kind": "whole message",
+      "note": "Usually the first wall you hit, and the hardest one to find.",
+      "verifiedAt": "2025-11-14"
+    },
+    {
+      "id": "gmail",
+      "name": "Gmail (reference)",
+      "limitMB": 25,
+      "kind": "attachment",
+      "note": "Included for calibration of our own feelings.",
+      "verifiedAt": "2025-11-14"
+    },
+    {
+      "id": "qq",
+      "name": "QQ Mail (reference)",
+      "limitMB": 50,
+      "kind": "attachment",
+      "note": "The generous corner of the Chinese internet, reminding us the world is not uniform.",
+      "verifiedAt": "2025-09-08"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+﻿node_modules/
+build/
+dist/
+*.blob
+*.exe
+_check-out.txt
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
