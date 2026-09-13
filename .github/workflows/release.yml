@@ -1,4 +1,4 @@
-﻿# attachment-too-large/att-tools — six tools, three platforms, tagged releases.
+# attachment-too-large/att-tools — six tools, three platforms, tagged releases.
 name: build
 
 on:
@@ -93,6 +93,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # A deleted tag leaves its release orphaned: it no longer answers to /releases/tags/<tag>
+          # but it still owns the tag name, so gh release create dies with "already exists".
+          # Delete first (keeping the tag), then create it from scratch.
+          gh release delete "${GITHUB_REF_NAME}" --yes --cleanup-tag=false >/dev/null 2>&1 || true
           gh release create "${GITHUB_REF_NAME}" \
             --title "att-tools ${GITHUB_REF_NAME}" \
             --notes "Six tools for the attachment too large problem. Each one is a single executable that needs nothing installed on the target machine.
