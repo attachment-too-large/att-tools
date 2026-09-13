@@ -69,6 +69,9 @@ const LIMITS_JSON = readFileSync(join(ROOT, "data", "limits.json"), "utf8");
 const results = [];
 let failed = 0;
 
+/* ---------- pass 1: build every requested executable ---------- */
+/* Two passes on purpose: att-split's smoke test rejoins its own output with att-join,
+   so every executable must exist before verification starts. */
 for (const name of which) {
   const entry = join(ROOT, "src", `${name}.mjs`);
   const bundle = join(BUILD, `att-${name}.cjs`);
@@ -76,8 +79,8 @@ for (const name of which) {
   const seaConfig = join(BUILD, `sea-${name}.json`);
   const out = join(DIST, `att-${name}${EXT}`);
 
-  console.log(`${c(36, "▶")} att-${name}`);
-  if (!existsSync(entry)) { console.log(`    ${c(31, "missing")} ${entry}`); failed++; continue; }
+  console.log(`${c(36, "▶")} build att-${name}`);
+  if (!existsSync(entry)) { console.log(`    ${c(31, "missing")} ${entry}`); failed++; results.push({ name, ok: false }); continue; }
 
   await esbuild.build({
     entryPoints: [entry],
@@ -93,43 +96,61 @@ for (const name of which) {
 
   writeFileSync(seaConfig, JSON.stringify({ main: bundle, output: blob, disableExperimentalSEAWarning: true }, null, 2) + "\n", "utf8");
   const sea = run(NODE_BIN, ["--experimental-sea-config", seaConfig]);
-  if (!existsSync(blob)) { console.log(`    ${c(31, "SEA blob failed")}: ${(sea.stderr || sea.stdout || "").slice(0, 200)}`); failed++; continue; }
+  if (!existsSync(blob)) { console.log(`    ${c(31, "SEA blob failed")}: ${(sea.stderr || sea.stdout || "").slice(0, 200)}`); failed++; results.push({ name, ok: false }); continue; }
 
   rmSync(out, { force: true });
   copyFileSync(NODE_BIN, out);
   const inject = run(NODE_BIN, [postject, out, "NODE_SEA_BLOB", blob, "--sentinel-fuse", SENTINEL]);
-  if (inject.status !== 0) { console.log(`    ${c(31, "inject failed")}: ${(inject.stderr || inject.stdout || "").slice(0, 200)}`); failed++; continue; }
+  if (inject.status !== 0) { console.log(`    ${c(31, "inject failed")}: ${(inject.stderr || inject.stdout || "").slice(0, 200)}`); failed++; results.push({ name, ok: false }); continue; }
 
-  const sizeMB = (statSync(out).size / 1048576).toFixed(1);
+  console.log(`    ${c(32, "built")}  ${(statSync(out).size / 1048576).toFixed(1)} MB`);
+  results.push({ name, ok: true, sizeMB: (statSync(out).size / 1048576).toFixed(1) });
+}
 
-  if (verify) {
+/* ---------- pass 2: run each executable ---------- */
+if (verify) {
+  console.log("");
+  for (const r of results.filter((r) => r.ok)) {
+    const name = r.name;
+    const out = join(DIST, `att-${name}${EXT}`);
+    console.log(`${c(36, "▶")} verify att-${name}`);
+
     const v = run(out, ["--version"]);
     const h = run(out, ["--help"]);
-    const passes = v.status === 0 && /^0\.1\.0/.test((v.stdout || "").trim()) && h.status === 0 && /Usage/.test(h.stdout || "");
-    if (!passes) {
-      failed++;
-      console.log(`    ${c(31, "FAIL")}  ${sizeMB} MB · ${(v.stderr || v.stdout || "").split("\n")[0].slice(0, 90)}`);
-      results.push({ name, ok: false });
+    const runs = v.status === 0 && /^0\.1\.0/.test((v.stdout || "").trim()) && h.status === 0 && /Usage/.test(h.stdout || "");
+    if (!runs) {
+      failed++; r.ok = false;
+      console.log(`    ${c(31, "FAIL")}  ${(v.stderr || v.stdout || "").split("\n")[0].slice(0, 90)}`);
       continue;
     }
 
-    // one real operation per tool, on a throwaway file
     const work = join(BUILD, `verify-${name}`);
+    rmSync(work, { recursive: true, force: true });
     mkdirSync(work, { recursive: true });
     const file = join(work, "check.bin");
     writeFileSync(file, Buffer.alloc(3 * 1024 * 1024 + 777, 0x5a));
+
     let smoke = true, detail = "runs";
     if (name === "split") {
-      const r = run(out, [file, "--limit", "1MB", "--json"]);
-      let j = null; try { j = JSON.parse(r.stdout); } catch {}
-      smoke = r.status === 0 && j?.shards?.length === 4;
+      const sp = run(out, [file, "--limit", "1MB", "--json"]);
+      let j = null; try { j = JSON.parse(sp.stdout); } catch {}
+      smoke = sp.status === 0 && j?.shards?.length === 4;
       detail = j ? `${j.shards.length} shards` : "no json";
       if (smoke) {
-        const jn = run(out.replace("split", "join"), [join(work, "check.bin.att.json"), "--json"]);
+        const joinExe = join(DIST, `att-join${EXT}`);
+        // --out is required here: the source file is still sitting in the same folder,
+        // and att-join refuses to overwrite it (by design).
+        const jn = run(joinExe, [join(work, "check.bin.att.json"), "--out", join(work, "rebuilt.bin"), "--json"]);
         let jj = null; try { jj = JSON.parse(jn.stdout); } catch {}
         smoke = jn.status === 0 && jj?.ok === true;
-        detail += jj?.ok ? " · rejoin verified" : " · rejoin failed";
+        detail += jj?.ok ? " · rejoin verified" : ` · rejoin failed (exit ${jn.status})`;
       }
+    } else if (name === "join") {
+      run(join(DIST, `att-split${EXT}`), [file, "--limit", "1MB", "--json"]);
+      const jn = run(out, [join(work, "check.bin.att.json"), "--out", join(work, "rebuilt.bin"), "--json"]);
+      let jj = null; try { jj = JSON.parse(jn.stdout); } catch {}
+      smoke = jn.status === 0 && jj?.ok === true;
+      detail = jj?.ok ? `rebuilt ${jj.bytes} bytes` : "rejoin failed";
     } else if (name === "info") {
       const r = run(out, [file, "--json"]);
       let j = null; try { j = JSON.parse(r.stdout); } catch {}
@@ -144,14 +165,15 @@ for (const name of which) {
       let j = null; try { j = JSON.parse(r.stdout); } catch {}
       smoke = r.status === 0 && j?.findings?.length >= 1;
       detail = j ? j.findings[0].title.slice(0, 28) : "no json";
+    } else if (name === "share") {
+      const r = run(out, ["--help"]);
+      smoke = r.status === 0 && /--once/.test(r.stdout || "");
+      detail = "usage lists the expiry and budget flags";
     }
     rmSync(work, { recursive: true, force: true });
     if (!smoke) failed++;
-    console.log(`    ${smoke ? c(32, "PASS") : c(31, "FAIL")}  ${sizeMB} MB · ${detail}`);
-    results.push({ name, ok: smoke, sizeMB });
-  } else {
-    console.log(`    ${c(32, "built")}  ${sizeMB} MB`);
-    results.push({ name, ok: true, sizeMB });
+    r.ok = smoke;
+    console.log(`    ${smoke ? c(32, "PASS") : c(31, "FAIL")}  ${r.sizeMB} MB · ${detail}`);
   }
 }
 

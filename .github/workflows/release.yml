@@ -1,0 +1,107 @@
+# attachment-too-large/att-tools — six tools, three platforms, tagged releases.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # ---------- 48 checks: split/join round trip, corruption, missing shards, the
+  # ---------- generated .ps1/.cmd rebuild scripts, encoded-size maths, database
+  # ---------- validation, bounce translation, and a real one-shot share link.
+  test:
+    name: test suite (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run the suite against the sources
+        run: node tools/test.mjs
+
+  # ---------- six single-file executables ----------
+  build:
+    name: build (${{ matrix.os }})
+    needs: [test]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            suffix: win-x64.exe
+          - os: ubuntu-latest
+            suffix: linux-x64
+          - os: macos-latest
+            suffix: macos-arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build all six and self-test each one
+        run: node tools/build-exe.mjs
+      - name: Run the suite against the built executables
+        run: node tools/test.mjs --exe
+      - name: Rename for the release
+        shell: bash
+        run: |
+          cd dist
+          for f in att-split att-join att-info att-limits att-ndr att-share; do
+            if [ -f "$f.exe" ]; then mv "$f.exe" "$f-${{ matrix.suffix }}"; fi
+            if [ -f "$f" ]; then mv "$f" "$f-${{ matrix.suffix }}"; fi
+          done
+          ls -la
+      - uses: actions/upload-artifact@v4
+        with:
+          name: att-tools-${{ matrix.suffix }}
+          path: dist/*
+          if-no-files-found: error
+
+  # ---------- tag → release with every binary and a checksum file ----------
+  release:
+    name: publish release
+    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS.txt || true
+          ls -la
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "att-tools ${GITHUB_REF_NAME}" \
+            --notes "Six tools for the attachment too large problem. Each one is a single executable that needs nothing installed on the target machine.
+
+          | Tool | What it does |
+          | --- | --- |
+          | \`att-split\` | Cut a file into shards under a limit, with a manifest and rebuild scripts the recipient can double-click |
+          | \`att-join\` | Verify every shard's SHA-256, rebuild, and refuse to write corrupt output |
+          | \`att-info\` | Will it send? Does the Base64 arithmetic the server actually measures |
+          | \`att-limits\` | Query and validate the attachment-limits database |
+          | \`att-ndr\` | Translate a bounce message into English |
+          | \`att-share\` | Serve one file behind a random token with an expiry and a download budget, then stop |
+
+          Binaries are named \`<tool>-<platform>\`. Every executable is run before it is uploaded — \`--version\`, \`--help\`, and one real operation per tool. Checksums in \`SHA256SUMS.txt\`." \
+            dist/*
