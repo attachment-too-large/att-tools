@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>attachmenttoolarge — client</title>
+<hta:application
+  id="attApp"
+  applicationname="attachmenttoolarge"
+  border="thin"
+  caption="yes"
+  maximizebutton="no"
+  minimizebutton="yes"
+  showintaskbar="yes"
+  scroll="no"
+  singleinstance="no"
+  icon="att-gui.exe" />
+<style>
+  /* Trident: no CSS grid, no flex gap, no custom properties, no arrow functions.
+     Everything here is ES5 + flexbox on purpose, because this window is the
+     Microsoft HTML engine and nothing else. */
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body {
+    background: #0a0d10; color: #e8eef2;
+    font-family: Consolas, "Cascadia Mono", monospace; font-size: 13px;
+    -ms-user-select: none; user-select: none;
+  }
+  #wrap { height: 100%; display: -ms-flexbox; display: flex; -ms-flex-direction: column; flex-direction: column; }
+
+  #bar {
+    background: #12161a; border-bottom: 4px solid #c9a961;
+    padding: 10px 14px; display: -ms-flexbox; display: flex; -ms-flex-align: center; align-items: center;
+  }
+  #bar .mark { width: 34px; height: 34px; margin-right: 12px; }
+  #bar b { font-size: 15px; letter-spacing: 1px; }
+  #bar span { color: #7c8b96; font-size: 11px; margin-left: 10px; }
+
+  #body { -ms-flex: 1; flex: 1; padding: 12px 14px; overflow: auto; }
+  .row { display: -ms-flexbox; display: flex; }
+  .col { -ms-flex: 1; flex: 1; }
+  .col + .col { margin-left: 14px; }
+
+  .card { background: #12161a; border: 3px solid #2a333b; padding: 14px; }
+  .card h2 { margin: 0 0 2px; font-size: 13px; letter-spacing: 1.5px; color: #4fd1a5; }
+  .card p.hint { margin: 0 0 12px; color: #7c8b96; font-size: 11px; line-height: 1.5; }
+  label { display: block; margin: 10px 0 4px; font-size: 11px; color: #7c8b96; letter-spacing: .5px; }
+  input[type=text], select {
+    width: 100%; padding: 8px; background: #0d1114; color: #e8eef2;
+    border: 2px solid #2a333b; font-family: Consolas, monospace; font-size: 13px;
+    box-sizing: border-box;
+  }
+  input[type=text]:focus, select:focus { outline: none; border-color: #4fd1a5; }
+  input[type=file] { color: #7c8b96; font-size: 11px; margin-top: 2px; }
+  .btnrow { margin-top: 12px; }
+  button {
+    padding: 9px 16px; background: #4fd1a5; color: #06231b; border: 2px solid #4fd1a5;
+    font-family: Consolas, monospace; font-size: 13px; font-weight: bold; letter-spacing: .5px; cursor: pointer;
+  }
+  button:hover { background: #c9a961; border-color: #c9a961; }
+  button[disabled] { background: #2a333b; border-color: #2a333b; color: #7c8b96; cursor: default; }
+  button.ghost { background: #0d1114; color: #e8eef2; border-color: #2a333b; font-weight: normal; }
+  button.ghost:hover { border-color: #4fd1a5; color: #4fd1a5; background: #0d1114; }
+
+  .drop { margin-top: 10px; padding: 14px; border: 2px dashed #2a333b; color: #7c8b96;
+          text-align: center; font-size: 11px; }
+  .drop.hot { border-color: #c9a961; color: #c9a961; }
+
+  pre {
+    margin: 12px 0 0; padding: 11px; background: #0d1114; border-left: 5px solid #4fd1a5;
+    white-space: pre-wrap; word-wrap: break-word; font-size: 12px; min-height: 46px; max-height: 190px;
+    overflow: auto; -ms-user-select: text; user-select: text;
+  }
+  pre.bad { border-left-color: #e0242b; }
+  pre.busy { border-left-color: #c9a961; }
+
+  #limits { margin-top: 14px; background: #12161a; border: 3px solid #2a333b; padding: 12px 14px; }
+  #limits h2 { margin: 0 0 8px; font-size: 13px; letter-spacing: 1.5px; color: #4fd1a5; }
+  .kv { display: -ms-flexbox; display: flex; border-bottom: 1px dashed #2a333b; padding: 4px 0; font-size: 12px; }
+  .kv .k { -ms-flex: 1; flex: 1; color: #b9c4cc; }
+  .kv .v { color: #c9a961; }
+  #foot { padding: 8px 14px; color: #7c8b96; font-size: 10px; border-top: 2px solid #2a333b; background: #12161a; }
+</style>
+</head>
+<body>
+<div id="wrap">
+
+  <div id="bar">
+    <svg class="mark" viewBox="0 0 512 512">
+      <path d="M96 16 H496 V416 L416 496 H16 V96 Z" fill="#12161a" stroke="#2a333b" stroke-width="16"/>
+      <path d="M188 392 V152 A46 46 0 0 1 280 152 V372" fill="none" stroke="#4fd1a5" stroke-width="30"/>
+      <path d="M216 152 A18 18 0 0 1 252 152 V352" fill="none" stroke="#4fd1a5" stroke-width="20"/>
+      <path d="M188 152 H280" stroke="#c9a961" stroke-width="18"/>
+    </svg>
+    <div>
+      <b>attachmenttoolarge</b><span>client v0.2.0 &middot; on this machine only &middot; nothing is uploaded</span>
+    </div>
+  </div>
+
+  <div id="body">
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <h2>CUT A FILE</h2>
+          <p class="hint">Pick the file that will not fit. Every piece is written next to it, along with
+          a manifest of SHA-256 hashes and three rebuild scripts the recipient can just double-click.</p>
+          <label>FILE TO CUT</label>
+          <input type="text" id="spPath" placeholder="C:\Users\you\Desktop\Q3-report_v7_final.xlsx">
+          <input type="file" id="spPick">
+          <label>MAXIMUM SIZE PER PIECE</label>
+          <select id="spLimit">
+            <option value="20MB">20 MB &mdash; the Outlook.com wall</option>
+            <option value="35MB">35 MB &mdash; Exchange Online default</option>
+            <option value="25MB">25 MB &mdash; Gmail</option>
+            <option value="10MB">10 MB &mdash; the cautious one</option>
+            <option value="1MB">1 MB &mdash; for testing</option>
+          </select>
+          <div class="btnrow">
+            <button id="spGo">Cut it up</button>
+            <button id="spOpen" class="ghost">Open the folder</button>
+          </div>
+          <div class="drop" id="spDrop">or drop a file anywhere in this window</div>
+          <pre id="spOut">Waiting.</pre>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card">
+          <h2>PUT IT BACK</h2>
+          <p class="hint">Point at the folder holding the pieces, or at any single piece. Every shard is
+          checked against its hash before a single byte is written &mdash; a damaged piece is refused, not guessed at.</p>
+          <label>FOLDER, OR ANY PIECE</label>
+          <input type="text" id="jnPath" placeholder="C:\Users\you\Downloads">
+          <input type="file" id="jnPick">
+          <label>WRITE THE REBUILT FILE AS (OPTIONAL)</label>
+          <input type="text" id="jnOut" placeholder="leave empty to use the original name">
+          <div class="btnrow">
+            <button id="jnGo">Rebuild it</button>
+            <button id="jnOpen" class="ghost">Open the folder</button>
+          </div>
+          <pre id="jnOut2">Waiting.</pre>
+        </div>
+      </div>
+    </div>
+
+    <div id="limits">
+      <h2>THE LIMITS IT KNOWS ABOUT</h2>
+      <div id="limitsBody"></div>
+    </div>
+  </div>
+
+  <div id="foot">
+    MIT &middot; the Attachment Too Large Society &middot; this window is the command-line tools with a face on them; nothing else is installed and nothing is sent anywhere
+  </div>
+</div>
+
+<script language="JScript">
+/* ==========================================================================
+   Everything here is ES5 on purpose: this window is the Microsoft HTML engine,
+   so no let/const, no arrow functions, no template strings, no promises.
+   ========================================================================== */
+var fso = new ActiveXObject("Scripting.FileSystemObject");
+var shell = new ActiveXObject("WScript.Shell");
+
+function $(id) { return document.getElementById(id); }
+
+/* The tools sit next to this window (the installer puts them all in one folder). */
+function toolPath(name) {
+  var here = fso.GetParentFolderName(location.pathname.replace(/^\//, ""));
+  var tries = [
+    here + "\\" + name + ".exe",
+    here + "\\..\\dist\\" + name + ".exe",
+    here + "\\..\\..\\dist\\" + name + ".exe"
+  ];
+  for (var i = 0; i < tries.length; i++) {
+    if (fso.FileExists(tries[i])) { return tries[i]; }
+  }
+  return null;
+}
+
+/* ---------- run one of the command-line tools and hand back its stdout ---------- */
+function runTool(name, args, onDone) {
+  var exe = toolPath(name);
+  if (!exe) {
+    onDone("", 127, "Could not find " + name + ".exe next to the client. Keep the tools and the client in the same folder.");
+    return;
+  }
+  var cmd = '"' + exe + '" ' + args;
+  var exec;
+  try { exec = shell.Exec(cmd); }
+  catch (e) { onDone("", 1, "Could not start " + name + ": " + e.message); return; }
+
+  var out = "";
+  var timer = setInterval(function () {
+    try { out += exec.StdOut.ReadAll(); } catch (e1) { }
+    if (exec.Status === 1) {
+      clearInterval(timer);
+      try { out += exec.StdOut.ReadAll(); } catch (e2) { }
+      var err = "";
+      try { err = exec.StdErr.ReadAll(); } catch (e3) { }
+      onDone(out, exec.ExitCode, err);
+    }
+  }, 200);
+}
+
+function show(el, text, cls) {
+  el.className = cls || "";
+  el.innerText = text;
+}
+
+function pretty(json) {
+  try {
+    var o = eval("(" + json + ")");
+    return o;
+  } catch (e) { return null; }
+}
+
+/* ---------- cut ---------- */
+var seenFiles = 0;
+function cut() {
+  var file = $("spPath").value;
+  var limit = $("spLimit").value;
+  if (!file) { show($("spOut"), "Give a full path to the file, or drop it on this window.", "bad"); return; }
+  if (!fso.FileExists(file)) { show($("spOut"), "There is no file at:\n" + file, "bad"); return; }
+  $("spGo").disabled = true;
+  show($("spOut"), "Cutting " + fso.GetFileName(file) + " into " + limit + " pieces\u2026", "busy");
+  runTool("att-split", '"' + file + '" --limit ' + limit + ' --json', function (out, code, err) {
+    $("spGo").disabled = false;
+    var j = pretty(out);
+    if (!j || j.ok === false) { show($("spOut"), "Failed.\n" + (j && j.error ? j.error : (err || out)), "bad"); return; }
+    var dir = fso.GetParentFolderName(file);
+    var lines = ["Done \u2014 cut into " + (j.shards || j.count || "?") + " pieces.", "", dir];
+    var f = fso.GetFolder(dir), files = new Enumerator(f.Files);
+    for (; !files.atEnd(); files.moveNext()) {
+      var n = files.item().Name;
+      if (n.indexOf(fso.GetFileName(file) + ".att") === 0) { lines.push("   " + n + "   " + Math.round(files.item().Size / 1048576 * 10) / 10 + " MB"); }
+    }
+    show($("spOut"), lines.join("\n"));
+  });
+}
+
+/* ---------- rebuild ---------- */
+function rebuild() {
+  var path = $("jnPath").value;
+  var out = $("jnOut").value;
+  if (!path) { show($("jnOut2"), "Give the folder that holds the pieces, or any single piece.", "bad"); return; }
+  var target = path;
+  if (fso.FolderExists(path)) {
+    /* find the manifest in that folder */
+    var found = null, ff = fso.GetFolder(path), e = new Enumerator(ff.Files);
+    for (; !e.atEnd(); e.moveNext()) {
+      if (/\.att\.json$/i.test(e.item().Name)) { found = e.item().Path; break; }
+    }
+    if (!found) { show($("jnOut2"), "No manifest (*.att.json) in:\n" + path + "\n\nKeep it in the same folder as the pieces.", "bad"); return; }
+    target = found;
+  }
+  $("jnGo").disabled = true;
+  show($("jnOut2"), "Verifying every piece against its SHA-256\u2026", "busy");
+  var args = '"' + target + '" --json';
+  if (out) { args += ' --out "' + out + '" --force'; }
+  runTool("att-join", args, function (stdout, code, err) {
+    $("jnGo").disabled = false;
+    var j = pretty(stdout);
+    if (!j || j.ok === false) { show($("jnOut2"), "Refused or failed.\n" + (j && j.error ? j.error : (err || stdout)), "bad"); return; }
+    show($("jnOut2"), "Verified and rebuilt.\n\n   " + (j.output || out || "the original name") +
+      "\n   " + (j.bytes || "?") + " bytes\n   every piece matched its recorded SHA-256");
+  });
+}
+
+/* ---------- open the folder in Explorer ---------- */
+function openFolder(id) {
+  var v = $(id).value;
+  if (!v) { return; }
+  var folder = fso.FolderExists(v) ? v : fso.GetParentFolderName(v);
+  if (folder && fso.FolderExists(folder)) { shell.Run('explorer.exe "' + folder + '"', 1, false); }
+}
+
+/* ---------- pickers and drop ---------- */
+$("spPick").onchange = function () { if (this.value) { $("spPath").value = this.value; } };
+$("jnPick").onchange = function () { if (this.value) { $("jnPath").value = this.value; } };
+$("spGo").onclick = cut;
+$("jnGo").onclick = rebuild;
+$("spOpen").onclick = function () { openFolder("spPath"); };
+$("jnOpen").onclick = function () { openFolder("jnPath"); };
+
+document.ondragover = function (e) { $("spDrop").className = "drop hot"; e.returnValue = false; };
+document.ondragleave = function () { $("spDrop").className = "drop"; };
+document.ondrop = function (e) {
+  $("spDrop").className = "drop";
+  try {
+    var f = e.dataTransfer.files.item(0);
+    $("spPath").value = f.path;
+    show($("spDrop"), "Got it: " + f.name + " \u2014 press Cut it up.", "");
+  } catch (err) { }
+  e.returnValue = false;
+};
+
+/* ---------- the limits table, read from data/limits.json beside the tools ---------- */
+(function () {
+  var candidates = ["data\\limits.json", "..\\data\\limits.json", "..\\..\\data\\limits.json"];
+  var here = fso.GetParentFolderName(location.pathname.replace(/^\//, ""));
+  var body = $("limitsBody");
+  for (var i = 0; i < candidates.length; i++) {
+    var p = here + "\\" + candidates[i];
+    if (fso.FileExists(p)) {
+      try {
+        var txt = fso.OpenTextFile(p, 1).ReadAll();
+        var data = eval("(" + txt + ")");
+        var html = "";
+        for (var k = 0; k < data.services.length; k++) {
+          var s = data.services[k];
+          html += '<div class="kv"><span class="k">' + s.name + (s.context ? " \u2014 " + s.context : "") +
+                  '</span><span class="v">' + (s.attachmentLimitHuman || s.attachmentLimit || "?") + '</span></div>';
+        }
+        html += '<div class="kv"><span class="k">last checked</span><span class="v">' + (data.updatedAt || "unknown") + '</span></div>';
+        body.innerHTML = html;
+        return;
+      } catch (e) { }
+    }
+  }
+  body.innerHTML = '<div class="kv"><span class="k">limits database not found next to the client</span><span class="v">unknown</span></div>';
+})();
+
+/* centre the window on the screen the first time it opens */
+(function () {
+  try {
+    window.resizeTo(1020, 680);
+    window.moveTo(Math.max(0, (screen.availWidth - 1020) / 2), Math.max(0, (screen.availHeight - 680) / 2));
+  } catch (e) { }
+})();
+</script>
+</body>
+</html>

@@ -57,7 +57,7 @@ function addToUserPath(folder) {
 }
 
 /* ---------- what to install ---------- */
-const payload = readdirSync(HERE).filter((n) => /^att-.*\.exe$/i.test(n) && !/^att-(setup|uninstall)\.exe$/i.test(n));
+const payload = readdirSync(HERE).filter((n) => /^(att-.*\.exe|.*\.hta)$/i.test(n) && !/^att-(setup|uninstall)\.exe$/i.test(n));
 
 say("");
 say("  attachmenttoolarge " + VERSION + " — installer");
