@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="attachmenttoolarge — command line and desktop client">
+  <title>attachmenttoolarge — flat technical mark</title>
+  <defs>
+    <!-- 方舟那套 UI 的性格：极平的深色底、硬边切角、细亮线、单色高对比。
+         不用渐变、不用浮雕、不用圆润的过渡。 -->
+    <linearGradient id="plate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12161a"/>
+      <stop offset="1" stop-color="#0a0d10"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 底板：矩形切掉左上角，像一个技术面板 -->
+  <path d="M96 16 H496 V416 L416 496 H16 V96 Z" fill="url(#plate)"/>
+  <path d="M96 16 H496 V416 L416 496 H16 V96 Z" fill="none" stroke="#2a333b" stroke-width="6"/>
+
+  <!-- 内框：两条细亮线，一冷一暖 -->
+  <path d="M112 40 H472 V400 L400 472 H40 V112 Z" fill="none" stroke="#1d6b57" stroke-width="4"/>
+  <path d="M40 112 H472" stroke="#c9a961" stroke-width="4"/>
+  <path d="M472 400 H400 V472" stroke="#c9a961" stroke-width="4"/>
+
+  <!-- 主体：回形针，做成硬边折线而不是圆滑曲线 -->
+  <g fill="none" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M188 392 V152 A46 46 0 0 1 280 152 V372" stroke="#0a0d10" stroke-width="34" opacity="0.55" transform="translate(6 8)"/>
+    <path d="M188 392 V152 A46 46 0 0 1 280 152 V372" stroke="#4fd1a5" stroke-width="26"/>
+    <path d="M216 152 A18 18 0 0 1 252 152 V352" stroke="#4fd1a5" stroke-width="18"/>
+    <path d="M280 372 V152 H188" stroke="#4fd1a5" stroke-width="18"/>
+    <path d="M188 152 H280" stroke="#c9a961" stroke-width="14"/>
+  </g>
+
+  <!-- 右下角：技术刻度，暗示"大小/上限" -->
+  <g stroke="#3d4a54" stroke-width="5">
+    <path d="M352 424 V456 M372 436 V456 M392 424 V456 M412 444 V456"/>
+  </g>
+  <g stroke="#c9a961" stroke-width="5">
+    <path d="M352 424 V456 M372 436 V456"/>
+  </g>
+
+  <!-- 左上角：切角处的强调块 -->
+  <path d="M112 40 H176 L112 104 Z" fill="#1d6b57"/>
+  <path d="M40 112 V176 L104 112 Z" fill="#c9a961"/>
+
+  <!-- 底部一行技术铭文 -->
+  <text x="40" y="486" font-family="Consolas, 'Cascadia Mono', monospace" font-size="30"
+        letter-spacing="3" fill="#5d6b76">20MB // ATT</text>
+</svg>
